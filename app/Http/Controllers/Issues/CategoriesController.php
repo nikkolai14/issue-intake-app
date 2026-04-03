@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Issues\CategoryStoreRequest;
 use App\Http\Requests\Issues\CategoryUpdateRequest;
 use App\Models\Category;
+use App\Services\CategoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,15 +14,14 @@ use Inertia\Response;
 
 class CategoriesController extends Controller
 {
+    public function __construct(private CategoryService $categoryService) {}
+
     /**
      * Display a listing of categories in a modal.
      */
     public function index(Request $request): Response
     {
-        $categories = $request->user()
-            ->categories()
-            ->latest()
-            ->get()
+        $categories = $this->categoryService->getCategoriesForUser($request->user())
             ->map(fn (Category $category) => [
                 'id' => $category->id,
                 'name' => $category->name,
@@ -38,7 +38,7 @@ class CategoriesController extends Controller
      */
     public function store(CategoryStoreRequest $request): RedirectResponse
     {
-        $request->user()->categories()->create($request->validated());
+        $this->categoryService->createCategoryForUser($request->user(), $request->validated());
 
         return back();
     }
@@ -65,7 +65,7 @@ class CategoriesController extends Controller
     {
         $this->authorize('update', $category);
 
-        $category->update($request->validated());
+        $this->categoryService->updateCategory($category, $request->validated());
 
         return back();
     }
@@ -77,7 +77,7 @@ class CategoriesController extends Controller
     {
         $this->authorize('delete', $category);
 
-        $category->delete();
+        $this->categoryService->deleteCategory($category);
 
         return back();
     }

@@ -8,6 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Issues\IssueStoreRequest;
 use App\Http\Requests\Issues\IssueUpdateRequest;
 use App\Models\Issue;
+use App\Services\CategoryService;
+use App\Services\IssueService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,16 +18,17 @@ use Inertia\Response;
 
 class IssuesController extends Controller
 {
+    public function __construct(
+        private IssueService $issueService,
+        private CategoryService $categoryService,
+    ) {}
+
     /**
      * Display a listing of issues.
      */
     public function index(Request $request): Response
     {
-        $issues = $request->user()
-            ->issues()
-            ->with('categories')
-            ->latest()
-            ->get()
+        $issues = $this->issueService->getIssuesForUser($request->user())
             ->map(fn (Issue $issue) => [
                 'id' => $issue->id,
                 'title' => $issue->title,
@@ -45,10 +48,7 @@ class IssuesController extends Controller
                 'created_at' => $issue->created_at->diffForHumans(),
             ]);
 
-        $categories = $request->user()
-            ->categories()
-            ->latest()
-            ->get()
+        $categories = $this->categoryService->getCategoriesForUser($request->user())
             ->map(fn ($category) => [
                 'id' => $category->id,
                 'name' => $category->name,
@@ -67,11 +67,7 @@ class IssuesController extends Controller
      */
     public function store(IssueStoreRequest $request): RedirectResponse
     {
-        $issue = $request->user()->issues()->create($request->validated());
-
-        if ($request->has('category_ids')) {
-            $issue->categories()->sync($request->input('category_ids'));
-        }
+        $this->issueService->createIssueForUser($request->user(), $request->validated());
 
         return to_route('issues.index');
     }
@@ -83,10 +79,7 @@ class IssuesController extends Controller
     {
         $this->authorize('update', $issue);
 
-        $categories = $request->user()
-            ->categories()
-            ->latest()
-            ->get()
+        $categories = $this->categoryService->getCategoriesForUser($request->user())
             ->map(fn ($category) => [
                 'id' => $category->id,
                 'name' => $category->name,
@@ -116,11 +109,7 @@ class IssuesController extends Controller
     {
         $this->authorize('update', $issue);
 
-        $issue->update($request->validated());
-
-        if ($request->has('category_ids')) {
-            $issue->categories()->sync($request->input('category_ids'));
-        }
+        $this->issueService->updateIssue($issue, $request->validated());
 
         return to_route('issues.index');
     }
@@ -132,7 +121,7 @@ class IssuesController extends Controller
     {
         $this->authorize('delete', $issue);
 
-        $issue->delete();
+        $this->issueService->deleteIssue($issue);
 
         return to_route('issues.index');
     }

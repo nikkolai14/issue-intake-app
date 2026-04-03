@@ -9,38 +9,21 @@ use App\Http\Requests\Issues\IssueStoreRequest;
 use App\Http\Requests\Issues\IssueUpdateRequest;
 use App\Http\Resources\Issues\IssueResource;
 use App\Models\Issue;
+use App\Services\IssueService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class IssuesController extends Controller
 {
+    public function __construct(private IssueService $issueService) {}
+
     /**
      * Get all issues with optional filters for status, priority, and category.
      */
     public function index(Request $request): JsonResponse
     {
-        $query = $request->user()
-            ->issues()
-            ->with('categories');
-
-        // Filter by status
-        if ($request->has('status')) {
-            $query->where('status', $request->input('status'));
-        }
-
-        // Filter by priority
-        if ($request->has('priority')) {
-            $query->where('priority', $request->input('priority'));
-        }
-
-        // Filter by category
-        if ($request->has('category_id')) {
-            $query->whereHas('categories', function ($q) use ($request) {
-                $q->where('categories.id', $request->input('category_id'));
-            });
-        }
-
-        $issues = $query->latest()->get();
+        $filters = $request->only(['status', 'priority', 'category_id']);
+        $issues = $this->issueService->getIssuesForUser($request->user(), $filters);
 
         return response()->json([
             'data' => IssueResource::collection($issues),
@@ -52,13 +35,7 @@ class IssuesController extends Controller
      */
     public function store(IssueStoreRequest $request): JsonResponse
     {
-        $issue = $request->user()->issues()->create($request->validated());
-
-        if ($request->has('category_ids')) {
-            $issue->categories()->sync($request->input('category_ids'));
-        }
-
-        $issue->load('categories');
+        $issue = $this->issueService->createIssueForUser($request->user(), $request->validated());
 
         return response()->json([
             'message' => 'Issue created successfully',
@@ -87,13 +64,7 @@ class IssuesController extends Controller
     {
         $this->authorize('update', $issue);
 
-        $issue->update($request->validated());
-
-        if ($request->has('category_ids')) {
-            $issue->categories()->sync($request->input('category_ids'));
-        }
-
-        $issue->load('categories');
+        $issue = $this->issueService->updateIssue($issue, $request->validated());
 
         return response()->json([
             'message' => 'Issue updated successfully',
@@ -108,7 +79,7 @@ class IssuesController extends Controller
     {
         $this->authorize('delete', $issue);
 
-        $issue->delete();
+        $this->issueService->deleteIssue($issue);
 
         return response()->json([
             'message' => 'Issue deleted successfully',
