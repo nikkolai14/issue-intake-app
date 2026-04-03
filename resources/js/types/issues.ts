@@ -1,0 +1,28 @@
+export type Category = {
+    id: number;
+    name: string;
+    created_at?: string;
+};
+
+type IssueBase = {
+    id: number;
+    title: string;
+    description: string;
+    priority: string | null;
+    status:  string | null;
+};
+
+export type Issue = IssueBase & {
+    categories: Category[];
+    created_at: string;
+};
+        
+export type IssueFormData = IssueBase & {
+    category_ids: number[];
+}
+
+export type Enums = {
+    categories: Category[];
+    priorities: Record<string, string>;
+    statuses: Record<string, string>;
+};
