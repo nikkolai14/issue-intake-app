@@ -2,17 +2,14 @@ import { Head, router, useHttp } from '@inertiajs/react';
 import { DataTable } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { ColumnDef } from '@tanstack/react-table';
-import { PencilIcon, TrashIcon, PlusIcon, SettingsIcon } from 'lucide-react';
+import { PencilIcon, TrashIcon, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 import IssueForm from '@/pages/issues/issue-form';
 import DeleteIssueDialog from '@/pages/issues/delete-issue-dialog';
+import PriorityFilterDropdown from '@/pages/issues/priority-filter-dropdown';
+import CategoryFilterDropdown from '@/pages/issues/category-filter-dropdown';
+import SettingsDropdown from '@/pages/issues/settings-dropdown';
 import { Issue, IssueFormData, Enums } from '@/types/issues';
 import { toast } from 'sonner';
 
@@ -30,6 +27,8 @@ export default function Issues({ issues, categories, priorities, statuses }: Pro
     const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
     const [editData, setEditData] = useState<EditIssueData | null>(null);
     const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [priorityFilter, setPriorityFilter] = useState<string>('all');
+    const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
     const http = useHttp();
 
@@ -50,9 +49,13 @@ export default function Issues({ issues, categories, priorities, statuses }: Pro
         });
     };
 
-    const filteredIssues = statusFilter === 'all' 
-        ? issues 
-        : issues.filter(issue => issue.status.value === statusFilter);
+    const filteredIssues = issues.filter(issue => {
+        const matchesStatus = statusFilter === 'all' || issue.status.value === statusFilter;
+        const matchesPriority = priorityFilter === 'all' || issue.priority.value === priorityFilter;
+        const matchesCategory = categoryFilter === 'all' || 
+            issue.categories.some(cat => cat.id === parseInt(categoryFilter));
+        return matchesStatus && matchesPriority && matchesCategory;
+    });
 
     const statusFilterOptions = [
         { value: 'all', label: 'All', variant: 'outline' as const },
@@ -200,26 +203,21 @@ export default function Issues({ issues, categories, priorities, statuses }: Pro
                             ))}
                         </div>
                     </div>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm">
-                                <SettingsIcon className="mr-2 size-4" />
-                                Settings
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                                onClick={() =>
-                                    router.visit('/categories', {
-                                        onSuccess: () =>
-                                            setShowCategoryModal(true),
-                                    })
-                                }
-                            >
-                                Categories
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex gap-2">
+                        <PriorityFilterDropdown
+                            priorityFilter={priorityFilter}
+                            priorities={priorities}
+                            onFilterChange={setPriorityFilter}
+                        />
+                        <CategoryFilterDropdown
+                            categoryFilter={categoryFilter}
+                            categories={categories}
+                            onFilterChange={setCategoryFilter}
+                        />
+                        <SettingsDropdown
+                            onCategoriesClick={() => setShowCategoryModal(true)}
+                        />
+                    </div>
                 </div>
 
                 <DataTable columns={columns} data={filteredIssues} />
