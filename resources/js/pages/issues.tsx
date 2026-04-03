@@ -29,6 +29,7 @@ export default function Issues({ issues, categories, priorities, statuses }: Pro
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
     const [editData, setEditData] = useState<EditIssueData | null>(null);
+    const [statusFilter, setStatusFilter] = useState<string>('all');
 
     const http = useHttp();
 
@@ -48,6 +49,18 @@ export default function Issues({ issues, categories, priorities, statuses }: Pro
             },
         });
     };
+
+    const filteredIssues = statusFilter === 'all' 
+        ? issues 
+        : issues.filter(issue => issue.status.value === statusFilter);
+
+    const statusFilterOptions = [
+        { value: 'all', label: 'All', variant: 'outline' as const },
+        { value: 'todo', label: 'Todo', variant: 'default' as const },
+        { value: 'in_progress', label: 'In Progress', variant: 'warning' as const },
+        { value: 'in_review', label: 'In Review', variant: 'info' as const },
+        { value: 'completed', label: 'Completed', variant: 'success' as const },
+    ];
 
     const columns: ColumnDef<Issue>[] = [
         {
@@ -70,7 +83,7 @@ export default function Issues({ issues, categories, priorities, statuses }: Pro
             accessorKey: 'status',
             header: 'Status',
             cell: ({ row }) => {
-                const statusColors: Record<string, string> = {
+                const statusColors: Record<string, 'default' | 'warning' | 'info' | 'success'> = {
                     todo: 'default',
                     in_progress: 'warning',
                     in_review: 'info',
@@ -174,6 +187,18 @@ export default function Issues({ issues, categories, priorities, statuses }: Pro
                             <PlusIcon className="size-4" />
                             Add Issue
                         </Button>
+                        <div className="flex items-center gap-2">
+                            {statusFilterOptions.map((option) => (
+                                <Badge
+                                    key={option.value}
+                                    variant={statusFilter === option.value ? option.variant : 'outline'}
+                                    className="cursor-pointer"
+                                    onClick={() => setStatusFilter(option.value)}
+                                >
+                                    {option.label}
+                                </Badge>
+                            ))}
+                        </div>
                     </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -197,7 +222,7 @@ export default function Issues({ issues, categories, priorities, statuses }: Pro
                     </DropdownMenu>
                 </div>
 
-                <DataTable columns={columns} data={issues} />
+                <DataTable columns={columns} data={filteredIssues} />
             </div>
 
             {showCreateModal && (

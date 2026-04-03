@@ -4,15 +4,22 @@ export type Category = {
     created_at?: string;
 };
 
+type EnumValue = {
+    value: string;
+    label: string;
+};
+
 type IssueBase = {
     id: number;
     title: string;
     description: string;
     priority: string | null;
-    status:  string | null;
+    status: string | null;
 };
 
-export type Issue = IssueBase & {
+export type Issue = Omit<IssueBase, 'priority' | 'status'> & {
+    priority: EnumValue;
+    status: EnumValue;
     categories: Category[];
     created_at: string;
 };
