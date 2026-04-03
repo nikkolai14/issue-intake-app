@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\ApiKeyController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Support\Facades\Route;
@@ -21,4 +22,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('user-password.update');
 
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
+
+    Route::get('settings/api-key', [ApiKeyController::class, 'index'])->name('api-key.index');
+    Route::post('settings/api-key', [ApiKeyController::class, 'store'])->name('api-key.store');
+    Route::delete('settings/api-key', [ApiKeyController::class, 'destroy'])->name('api-key.destroy');
 });
