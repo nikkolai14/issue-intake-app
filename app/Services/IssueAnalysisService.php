@@ -16,7 +16,7 @@ class IssueAnalysisService
             $priorityLabel = $issue->priority?->label() ?? 'None';
             $statusLabel = $issue->status?->label() ?? 'Todo';
             
-            $prompt = "Analyze this issue: Title: {$issue->title}, Description: {$issue->description}, Priority: {$priorityLabel}, Status: {$statusLabel}. Provide a JSON response with 'summary' (short summary under 100 words) and 'next_action' (suggested next action).";
+            $prompt = "Analyze this issue: Title: {$issue->title}, Description: {$issue->description}, Priority: {$priorityLabel}, Status: {$statusLabel}. Provide a JSON response with 'summary' (short summary under 100 words as a string) and 'next_action' (suggested next action as a numbered list string ready for display, e.g., '1. First step\\n2. Second step\\n3. Third step'). Return only simple strings, no arrays or complex structures.";
             
             $model = config('services.ollama.model', 'llama3.2');
             $response = Ollama::model($model)
@@ -26,16 +26,12 @@ class IssueAnalysisService
             
             $content = $response['response'] ?? '{}';
             $data = json_decode($content, true);
+
+            Log::info('data: ' . print_r($data, true));
             if (json_last_error() === JSON_ERROR_NONE && isset($data['summary'], $data['next_action'])) {
-                // Handle case where next_action might be returned as an array
-                $nextAction = $data['next_action'];
-                if (is_array($nextAction)) {
-                    $nextAction = is_string($nextAction[0] ?? null) ? $nextAction[0] : implode(', ', array_filter($nextAction, 'is_string'));
-                }
-                
                 return [
                     'summary' => $data['summary'],
-                    'next_action' => $nextAction,
+                    'next_action' => $data['next_action'],
                 ];
             }
         } catch (Exception $e) {
@@ -50,12 +46,12 @@ class IssueAnalysisService
     {
         $summary = "Issue regarding: {$issue->title}";
         $nextAction = match ($issue->priority) {
-            Priority::Urgent => 'Handle immediately and notify stakeholders.',
-            Priority::High => 'Escalate immediately.',
-            Priority::Medium => 'Schedule for review in the next work cycle.',
-            Priority::Low => 'Monitor and address when resources are available.',
-            Priority::None => 'No immediate action required.',
-            default => 'Review and assign priority.',
+            Priority::Urgent => '1. Handle immediately and notify stakeholders.',
+            Priority::High => '1. Escalate immediately.',
+            Priority::Medium => '1. Schedule for review in the next work cycle.',
+            Priority::Low => '1. Monitor and address when resources are available.',
+            Priority::None => '1. No immediate action required.',
+            default => '1. Review and assign priority.',
         };
 
         return ['summary' => $summary, 'next_action' => $nextAction];
