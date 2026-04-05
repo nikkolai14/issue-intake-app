@@ -60,9 +60,19 @@ services:
             - sail
         depends_on:
             - mysql
+    ollama:
+        image: 'ollama/ollama'
+        ports:
+            - '11434:11434'
+        volumes:
+            - 'ollama:/root/.ollama'
+        networks:
+            - sail
 networks:
     sail:
         driver: bridge
 volumes:
     sail-mysql:
+        driver: local
+    ollama:
         driver: local

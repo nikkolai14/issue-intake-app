@@ -67,6 +67,30 @@ cp .env.example .env
 
 Make sure to configure your `.env` file with appropriate settings.
 
+### 8. Pull the Ollama model
+
+```bash
+docker-compose exec ollama ollama pull llama3.2
+```
+
+### 9. Verify Ollama is running and model is loaded
+
+Check if Ollama is running and list models:
+
+```bash
+curl http://localhost:11434/api/tags
+```
+
+Expected output: JSON like `{"models": [{"name": "llama3.2", ...}]}`. If you see `llama3.2` in the list, the model is loaded.
+
+### 10. Run the queue service
+
+Start the queue worker to process background jobs for AI analysis:
+
+```bash
+./vendor/bin/sail artisan queue:work --tries=3 --timeout=90
+```
+
 ## Running the Application
 
 To start the development server with hot module replacement:

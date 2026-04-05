@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\GenerateIssueAnalysis;
 use App\Models\Issue;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -43,6 +44,9 @@ class IssueService
             $issue->categories()->sync($data['category_ids']);
         }
 
+        // Dispatch job to generate summary and action in background
+        GenerateIssueAnalysis::dispatch($issue);
+
         return $issue->load('categories');
     }
 
@@ -56,6 +60,9 @@ class IssueService
         if (isset($data['category_ids'])) {
             $issue->categories()->sync($data['category_ids']);
         }
+
+        // Dispatch job to regenerate summary and action in background
+        GenerateIssueAnalysis::dispatch($issue);
 
         return $issue->load('categories');
     }

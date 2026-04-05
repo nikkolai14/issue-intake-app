@@ -3,13 +3,15 @@ import { DataTable } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ColumnDef } from '@tanstack/react-table';
-import { PencilIcon, TrashIcon, PlusIcon } from 'lucide-react';
+import { PlusIcon, EyeIcon, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import IssueForm from '@/pages/issues/issue-form';
 import DeleteIssueDialog from '@/pages/issues/delete-issue-dialog';
+import IssueDetailsDialog from '@/pages/issues/issue-details-dialog';
 import PriorityFilterDropdown from '@/pages/issues/priority-filter-dropdown';
 import CategoryFilterDropdown from '@/pages/issues/category-filter-dropdown';
 import SettingsDropdown from '@/pages/issues/settings-dropdown';
+import TruncatedTextTooltip from '@/pages/issues/truncated-text-tooltip';
 import { Issue, IssueFormData, Enums } from '@/types/issues';
 import { toast } from 'sonner';
 
@@ -26,6 +28,7 @@ export default function Issues({ issues, categories, priorities, statuses }: Pro
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
     const [editData, setEditData] = useState<EditIssueData | null>(null);
+    const [detailsIssue, setDetailsIssue] = useState<Issue | null>(null);
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [priorityFilter, setPriorityFilter] = useState<string>('all');
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -33,6 +36,7 @@ export default function Issues({ issues, categories, priorities, statuses }: Pro
     const http = useHttp();
 
     const handleEdit = (id: number) => {
+        setDetailsIssue(null); // Close details dialog
         http.get(`/issues/${id}/edit`, {
             onSuccess: (data) => {
                 setEditData(data as EditIssueData);
@@ -74,78 +78,37 @@ export default function Issues({ issues, categories, priorities, statuses }: Pro
             ),
         },
         {
-            accessorKey: 'description',
-            header: 'Description',
-            cell: ({ row }) => (
-                <div className="max-w-md truncate">
-                    {row.original.description}
-                </div>
-            ),
-        },
-        {
-            accessorKey: 'status',
-            header: 'Status',
+            accessorKey: 'summary',
+            header: 'Summary',
             cell: ({ row }) => {
-                const statusColors: Record<string, 'default' | 'warning' | 'info' | 'success'> = {
-                    todo: 'default',
-                    in_progress: 'warning',
-                    in_review: 'info',
-                    completed: 'success',
-                };
-                return (
-                    <Badge
-                        variant={
-                            statusColors[row.original.status?.value || 'todo']
-                        }
-                    >
-                        {row.original.status.label || 'Todo'}
-                    </Badge>
-                );
+                const content = row.original.summary;
+                if (!content) {
+                    return (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Loader2 className="size-4 animate-spin" />
+                            <span>Generating...</span>
+                        </div>
+                    );
+                }
+                
+                return <TruncatedTextTooltip text={content} title="Summary" />;
             },
         },
         {
-            accessorKey: 'priority',
-            header: 'Priority',
+            accessorKey: 'next_action',
+            header: 'Next Action',
             cell: ({ row }) => {
-                if (!row.original.priority.label) {
-                    return <span className="text-muted-foreground">-</span>;
+                const content = row.original.next_action;
+                if (!content) {
+                    return (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Loader2 className="size-4 animate-spin" />
+                            <span>Generating...</span>
+                        </div>
+                    );
                 }
-                const priorityColors: Record<string, string> = {
-                    urgent: 'destructive',
-                    high: 'default',
-                    medium: 'secondary',
-                    low: 'outline',
-                    none: 'outline',
-                };
-                return (
-                    <Badge
-                        variant={
-                            priorityColors[
-                                row.original.priority.value || 'none'
-                            ] as any
-                        }
-                    >
-                        {row.original.priority.label}
-                    </Badge>
-                );
-            },
-        },
-        {
-            accessorKey: 'categories',
-            header: 'Categories',
-            cell: ({ row }) => {
-                if (row.original.categories.length === 0) {
-                    return <span className="text-muted-foreground">-</span>;
-                }
-                return (
-                    <div className="flex flex-wrap gap-1">
-                        {row.original.categories.map((category) => (
-                            <Badge key={category.id} variant="outline">
-                                {category.name}
-                            </Badge>
-                        ))}
-                    </div>
-                );
+                
+                return <TruncatedTextTooltip text={content} title="Next Action" />;
             },
         },
         {
@@ -158,20 +121,13 @@ export default function Issues({ issues, categories, priorities, statuses }: Pro
         {
             id: 'actions',
             cell: ({ row }) => (
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end">
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleEdit(row.original.id)}
+                        onClick={() => setDetailsIssue(row.original)}
                     >
-                        <PencilIcon className="size-4" />
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setDeleteConfirmId(row.original.id)}
-                    >
-                        <TrashIcon className="size-4" />
+                        <EyeIcon className="size-4" />
                     </Button>
                 </div>
             ),
@@ -250,6 +206,18 @@ export default function Issues({ issues, categories, priorities, statuses }: Pro
                     issueTitle={issues.find(issue => issue.id === deleteConfirmId)?.title}
                     onCancel={() => setDeleteConfirmId(null)}
                     onConfirm={handleDelete}
+                />
+            )}
+
+            {detailsIssue && (
+                <IssueDetailsDialog
+                    issue={detailsIssue}
+                    onClose={() => setDetailsIssue(null)}
+                    onEdit={handleEdit}
+                    onDelete={(id) => {
+                        setDeleteConfirmId(id);
+                        setDetailsIssue(null);
+                    }}
                 />
             )}
         </>

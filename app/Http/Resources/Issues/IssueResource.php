@@ -26,6 +26,8 @@ class IssueResource extends JsonResource
                 'value' => $this->status->value,
                 'label' => $this->status->label(),
             ],
+            'summary' => $this->summary,
+            'next_action' => $this->next_action,
             'categories' => CategoryResource::collection($this->whenLoaded('categories')),
             'created_at' => $this->created_at->toIso8601String(),
         ];

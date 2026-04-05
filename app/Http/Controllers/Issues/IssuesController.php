@@ -45,6 +45,8 @@ class IssuesController extends Controller
                     'id' => $category->id,
                     'name' => $category->name,
                 ]),
+                'summary' => $issue->summary,
+                'next_action' => $issue->next_action,
                 'created_at' => $issue->created_at->diffForHumans(),
             ]);
 

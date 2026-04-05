@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-#[Fillable(['title', 'description', 'priority', 'status', 'user_id'])]
+#[Fillable(['title', 'description', 'priority', 'status', 'user_id', 'summary', 'next_action'])]
 class Issue extends Model
 {
     /** @use HasFactory<IssueFactory> */

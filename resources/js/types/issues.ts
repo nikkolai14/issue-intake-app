@@ -22,6 +22,8 @@ export type Issue = Omit<IssueBase, 'priority' | 'status'> & {
     status: EnumValue;
     categories: Category[];
     created_at: string;
+    summary: string | null;
+    next_action: string | null;
 };
         
 export type IssueFormData = IssueBase & {

@@ -4,10 +4,12 @@ namespace Tests\Feature;
 
 use App\Enums\Priority;
 use App\Enums\Status;
+use App\Jobs\GenerateIssueAnalysis;
 use App\Models\Category;
 use App\Models\Issue;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class IssueTest extends TestCase
@@ -29,6 +31,7 @@ class IssueTest extends TestCase
 
     public function test_authenticated_user_can_create_issue(): void
     {
+        Queue::fake();
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post('/issues', [
@@ -46,6 +49,8 @@ class IssueTest extends TestCase
             'priority' => Priority::High->value,
             'user_id' => $user->id,
         ]);
+
+        Queue::assertPushed(GenerateIssueAnalysis::class);
     }
 
     public function test_issue_title_is_required(): void
